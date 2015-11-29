@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+        <style type="text/css">
+            div.imageSub {
+                position: relative;
+                float: left;
+                margin-right: 10px;
+                margin-bottom: 10px;
+                width: 600px;
+                height: 400px;
+            }
+
+            div.imageSub img {
+                z-index: 1;
+                width: 100%;
+                height: 100%;
+            }
+
+            div.imageSub div {
+                position: absolute;
+                left: 0px;
+                right: 100px;
+                top: 0;
+                padding: 4px;
+                height: 30px;                
+            }
+
+            div.imageSub div.blackbg {
+                z-index: 2;
+                color: #000;
+                background-color: #fff;
+                -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+                filter: alpha(opacity=50);
+                opacity: 0.75;
+                width: 100%;
+            }
+
+            div.imageSub div.label {
+                z-index: 3;
+                color: black;
+                font-family: 'Tahoma';
+                font-size: 16px;
+                margin-top: 5px;
+                text-transform: uppercase;
+            }
+
+            .thresholdLabel {
+                float: left;
+                font-family: 'Tahoma';
+                font-size: 16px;
+                padding-top: 3px;
+            }
+
+            .thresholdInput {
+                float: left;
+                margin-left: 5px;
+                margin-right: 30px;
+                height: 20px;
+                text-align: center;
+            }
+
+        </style>
+
+        <meta charset=UTF-8>
+        <title>Tomcat WebSocket Chat</title>       
+    </head>
+    <body onunload="closeConnect();">
+
+        <div class="imageSub">
+            <img id="input">
+            <div class="blackbg"></div>
+            <div class="label">Input image</div>
+        </div>
+
+        <div class="imageSub">
+            <img id="backprojection">
+            <div class="blackbg"></div>
+            <div class="label">Back projection</div>
+        </div>
+
+        <div class="imageSub">
+            <img id="thresholdedBackprojection">
+            <div class="blackbg"></div>
+            <div class="label">Thresholded back projection</div>
+        </div>
+
+        <div class="imageSub">
+            <img id="morphological">
+            <div class="blackbg"></div>
+            <div class="label">Morphological image</div>
+        </div>
+
+        <div class="imageSub">
+            <img id="contours">
+            <div class="blackbg"></div>
+            <div class="label">Contours</div>
+        </div>
+
+        <div class="imageSub" style="width: 600px; height: 400px;">
+            <img id="output">
+            <div class="blackbg"></div>
+            <div class="label">Output</div>
+        </div>
+
+        <!-- <textarea id="chatlog" style="width: 500px; height: 400px;"></textarea><br/>
+                <input id="msg" type="text" />
+                <button type="submit" id="sendButton" onClick="postToServer()">Send!</button>-->
+
+
+        <br style="clear: both;" />
+        <br/>
+
+        <span class="thresholdLabel" style="margin-left: 100px;">hmin:</span>
+        <input class="thresholdInput" id="hmin" type="number" min="0" max="180" value="0" />
+
+        <span class="thresholdLabel" >hmax:</span>
+        <input class="thresholdInput" style="margin-right: 100px;" id="hmax" type="number" min="0" max="180" value="180" />
+
+        <span class="thresholdLabel" >smin:</span>
+        <input class="thresholdInput" id="smin" type="number" min="0" max="180" value="65" />
+
+        <span class="thresholdLabel" >smax:</span>
+        <input class="thresholdInput" style="margin-right: 100px;" id="smax" type="number" min="0" max="180" value="256" />
+
+        <span class="thresholdLabel" >vmin:</span>
+        <input class="thresholdInput" id="vmin" type="number" min="0" max="180" value="100" />
+
+        <span class="thresholdLabel" >vmax:</span>
+        <input class="thresholdInput" id="vmax" type="number" min="0" max="180" value="256" />
+
+
+
+
+        <br/>
+
+        <button type="submit" id="endButton" onClick="closeConnect()">End</button>
+        <br/>
+        <br/>
+        <span id="aSpan" style="font-size: 40px;">Text</span>
+        <br/>
+
+
+        <script>
+
+            var baseURL = "localhost:8084";
+
+            var ws = new WebSocket("ws://" + baseURL + "/WebsocketHome/camera");
+
+            ws.onopen = function () {
+            };
+
+            ws.onmessage = function (message) {
+
+
+
+                var data = message.data;
+                var jsonResponse = JSON.parse(data);
+
+                var images = [
+                    'input',
+                    'backprojection',
+                    'thresholdedBackprojection',
+                    'contours',
+                    'morphological',
+                    'output'
+                ];
+
+                images.forEach(function (image) {
+                    var data = jsonResponse[image];
+                    if (data) {
+                        document.getElementById(image).setAttribute('src', data);
+                    }
+                });
+
+                var theSpan = document.getElementById("aSpan");
+                var currentPen = jsonResponse['timeStamp'];
+                if (!currentPen) {
+                    currentPen = "No pen in the screen";
+                }
+                theSpan.innerHTML = currentPen;
+
+            };
+
+            function postToServer() {
+                ws.send(document.getElementById("msg").value);
+                document.getElementById("msg").value = "";
+            }
+
+            function closeConnect() {
+                ws.close();
+            }
+
+
+            var thresholdInputs = document.getElementsByClassName("thresholdInput");
+
+            for (var i = 0; i < thresholdInputs.length; i++) {
+                var input = thresholdInputs[i];
+                input.onchange = function reportThreshold() {
+                    ws.send(input.value);
+                };
+            }
+
+
+
+
+
+        </script>
+
+
+    </body>
+
+
+
+</html>
